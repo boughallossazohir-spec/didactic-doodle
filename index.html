@@ -33,7 +33,7 @@ button:hover{background:#235267;border-color:var(--gold);transform:translateX(4p
 <div id="hud"><div class="hudrow"><div><div class="brand">SHADOW PROTOCOL <span style="color:#ffd36b">/ WILDLANDS</span></div><div class="tiny">VITALITY</div><div class="health"><i id="hp"></i></div></div><div style="text-align:right"><div class="brand">WORLD <span id="worldnum">01</span> — <span id="zone">THE GREEN FRONTIER</span></div><div class="tiny">COINS <b id="coins">000</b> &nbsp; • &nbsp; RELICS <b id="relics">0</b></div></div></div><div id="hint">A / D OR ← → MOVE &nbsp; • &nbsp; SPACE / W JUMP &nbsp; • &nbsp; ESC PAUSE</div></div>
 <div class="layer" id="menu"><div class="panel"><div class="eyebrow">AN ADVENTURE BEYOND THE EDGE</div><h1>SHADOW<br><span>PROTOCOL</span></h1><div class="sub">WILDLANDS // WORLD ONE<br>A hand-crafted platform adventure. Run, leap, explore and uncover the lost signal.</div><button class="main" id="start">▶ &nbsp; START ADVENTURE</button><button id="manual">⌘ &nbsp; HOW TO PLAY</button><div class="note">ORIGINAL CHARACTERS AND WORLD • CANVAS 2D • OFFLINE PLAY<br>Built for keyboard play and lightweight computers.</div></div></div>
 <div class="layer" id="pause" style="display:none"><div class="panel"><div class="eyebrow">ADVENTURE INTERRUPTED</div><h1 id="pauseTitle">TAKE A<br><span>BREATHER</span></h1><div class="sub" id="pauseText">Your journey is waiting.</div><button class="main" id="resume">▶ &nbsp; CONTINUE</button><button id="again">↻ &nbsp; RESTART WORLD</button><button id="mainmenu">⌂ &nbsp; MAIN MENU</button></div></div>
-<div class="layer" id="help" style="display:none"><div class="panel"><div class="eyebrow">TRAVELLER'S FIELD GUIDE</div><h1>LEARN THE<br><span>LAND</span></h1><div class="sub">MOVE: A / D OR ARROW KEYS<br>JUMP: SPACE, W OR UP ARROW<br>LAND ON CREATURES FROM ABOVE TO STUN THEM.<br>COLLECT GOLD COINS AND GLOWING RELICS.<br>FIND THE CHECKPOINT FLAGS. REACH THE OLD GATE.</div><button class="main" id="back">← &nbsp; BACK TO TITLE</button></div></div>
+<div class="layer" id="help" style="display:none"><div class="panel"><div class="eyebrow">TRAVELLER'S FIELD GUIDE</div><h1>LEARN THE<br><span>LAND</span></h1><div class="sub">MOVE: A / D OR ARROW KEYS<br>JUMP: SPACE, W OR UP ARROW<br>SLIDE: HOLD SHIFT WHILE RUNNING<br>LAND ON CREATURES FROM ABOVE TO STUN THEM.<br>COLLECT GOLD COINS AND GLOWING RELICS.<br>FIND THE CHECKPOINT FLAGS. REACH THE OLD GATE.</div><button class="main" id="back">← &nbsp; BACK TO TITLE</button></div></div>
 </div>
 <script>
 (()=>{
@@ -67,15 +67,15 @@ function hurt(){if(hero.inv>0)return;hero.hp-=25;hero.inv=85;hero.vy=-7;hero.vx=
 function update(){
  if(mode!=='play')return;tick++;
  let L=keys.KeyA||keys.ArrowLeft,R=keys.KeyD||keys.ArrowRight,J=keys.Space||keys.KeyW||keys.ArrowUp;
- let target=L?-4.6:R?4.6:0;hero.vx+=(target-hero.vx)*(hero.ground?.24:.12);if(L)hero.face=-1;if(R)hero.face=1;
+ hero.sliding=!!(keys.ShiftLeft||keys.ShiftRight)&&hero.ground&&Math.abs(hero.vx)>1.5;let target=L?-4.6:R?4.6:0;if(hero.sliding)target=hero.face*7.1;hero.vx+=(target-hero.vx)*(hero.ground?(hero.sliding?.16:.24):.12);if(L)hero.face=-1;if(R)hero.face=1;
  if(J&&hero.ground&&!hero.jumpLock){hero.vy=-13.2;hero.ground=false;hero.jumpLock=true;sound(390,.12);burst(hero.x+17,hero.y+55,'#d5fff1',5)}if(!J)hero.jumpLock=false;
- hero.vy=Math.min(hero.vy+.58,15);let oldY=hero.y;hero.x=clamp(hero.x+hero.vx,0,worldW-40);hero.y+=hero.vy;hero.ground=false;
+ hero.vy=Math.min(hero.vy+.58,15);let oldY=hero.y,fallSpeed=hero.vy;hero.x=clamp(hero.x+hero.vx,0,worldW-40);hero.y+=hero.vy;hero.ground=false;
  for(const s of solids){if(hero.x+hero.w>s.x&&hero.x<s.x+s.w){
-   if(hero.vy>=0&&oldY+hero.h<=s.y+8&&hero.y+hero.h>=s.y){hero.y=s.y-hero.h;hero.vy=0;hero.ground=true}
+   if(hero.vy>=0&&oldY+hero.h<=s.y+8&&hero.y+hero.h>=s.y){hero.y=s.y-hero.h;hero.vy=0;hero.ground=true;if(fallSpeed>4){burst(hero.x+17,hero.y+hero.h,'#d9d0ad',9);sound(170,.045,'triangle')}}
    else if(hero.vy<0&&oldY>=s.y+s.h-4&&hero.y<=s.y+s.h&&s.type!=='earth'){hero.y=s.y+s.h;hero.vy=1;if(s.type==='block'||s.type==='brick'){s.bump=9;if(!s.used){s.used=true;score+=5;burst(s.x+s.w/2,s.y,'#ffd36b',8);sound(650,.08)}}}
  }}
  if(hero.y>850){hurt();hero.y=checkpoint+300}
- hero.run+=Math.abs(hero.vx)*.08;
+ hero.run+=Math.abs(hero.vx)*.08;if(hero.sliding&&tick%5===0)burst(hero.x+17-hero.face*10,hero.y+56,'#c8c5a6',2);
  for(const e of enemies){if(e.stun>0){e.stun--;continue}e.x+=e.v;if(e.x<e.min||e.x>e.max)e.v*=-1;
  if(hero.x+hero.w>e.x+4&&hero.x<e.x+e.w-4&&hero.y+hero.h>e.y+5&&hero.y+hero.h<e.y+e.h+20&&hero.vy>1){e.stun=150;hero.vy=-9;score+=10;sound(520,.1);burst(e.x+18,e.y,'#e7bd85',12)}
  else if(hero.x+hero.w>e.x+5&&hero.x<e.x+e.w-5&&hero.y+hero.h>e.y+8&&hero.y<e.y+e.h-4)hurt()
@@ -112,7 +112,7 @@ function terrain(){
 function drawCoin(q){let w=Math.max(3,Math.abs(Math.cos(tick*.11+q.phase))*16),px=q.x-cam;x.save();x.translate(px,q.y+Math.sin(tick*.07+q.phase)*3);x.fillStyle='#f6b93f';x.beginPath();x.ellipse(0,0,w,12,0,0,7);x.fill();x.strokeStyle='#fff0a4';x.lineWidth=2;x.stroke();x.restore()}
 function drawEnemy(e){let px=e.x-cam;x.save();x.translate(px,e.y);if(e.stun){x.rotate(Math.sin(tick*.3)*.08);x.globalAlpha=.6}x.fillStyle='#5d4939';x.beginPath();x.ellipse(19,22,19,14,0,0,7);x.fill();x.fillStyle='#d5b68a';x.beginPath();x.arc(13,16,6,0,7);x.arc(26,16,6,0,7);x.fill();x.fillStyle='#17232a';x.fillRect(12,14,3,5);x.fillRect(25,14,3,5);x.fillStyle='#3e322a';x.fillRect(3,30,9,4);x.fillRect(27,30,9,4);if(e.stun){x.fillStyle='#fff2a5';x.font='bold 18px Arial';x.fillText('✦',12,-4)}x.restore()}
 function drawHero(){
- let px=hero.x-cam,py=hero.y;x.save();x.translate(px+17,py);if(hero.face<0)x.scale(-1,1);
+ let px=hero.x-cam,py=hero.y;x.save();x.translate(px+17,py);if(hero.face<0)x.scale(-1,1);if(hero.sliding){x.translate(0,12);x.scale(1,.78)}
  const speed=clamp(Math.abs(hero.vx)/4.6,0,1),phase=hero.run*2.25,airborne=!hero.ground,lean=clamp(hero.vx*.035,-.16,.16);x.rotate(lean);
  let stride=airborne?0:Math.sin(phase)*speed,lift=airborne?Math.min(1,Math.abs(hero.vy)/13):0;
  x.save();x.globalAlpha=airborne?.22:.35;x.fillStyle='#172d31';x.beginPath();x.ellipse(0,62,18+lift*5,4,0,0,Math.PI*2);x.fill();x.restore();
